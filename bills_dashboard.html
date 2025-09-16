@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buffalo Bills AI Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .dark body { background-color: #0d1117; }
+        :root { --bills-blue: #00338D; --bills-red: #C60C30; }
+        .countdown-value { font-size: 2.5rem; font-weight: 900; line-height: 1; }
+        .countdown-label { font-size: 0.75rem; text-transform: uppercase; }
+        .trend-bar-bg { background-color: #e5e7eb; }
+        .dark .trend-bar-bg { background-color: #374151; }
+        .trend-bar-fill { background-color: #34d399; }
+        .insight-card { border-left: 4px solid var(--bills-blue); }
+        .dark .insight-card { border-left-color: #60a5fa; }
+        .confidence-high { background-color: #10b981; color: white; }
+        .confidence-medium { background-color: #f59e0b; color: white; }
+    </style>
+</head>
+<body class="antialiased text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-4">
+                <img src="https://ssl.gstatic.com/onebox/media/sports/logos/iVPY2n_k4Gbv7LdeK-_OA_96x96.png" alt="Buffalo Bills Logo" class="h-16 w-16">
+                <div>
+                    <h1 class="text-3xl font-bold text-[var(--bills-blue)] dark:text-blue-400">Bills AI Dashboard</h1>
+                    <p id="data-status" class="text-gray-500 dark:text-gray-400">Loading live data...</p>
+                </div>
+            </div>
+             <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 5.05A1 1 0 016.465 3.636l.707.707a1 1 0 01-1.414 1.414l-.707-.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1zM13 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM4.93 14.95a1 1 0 011.414 0l.707-.707a1 1 0 01-1.414-1.414l-.707.707z"></path></svg>
+            </button>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Countdown -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">UPCOMING MATCHUP</h2>
+                    <div id="next-game-info" class="flex items-center justify-around mb-6 text-center">
+                         <div class="flex flex-col items-center"><img src="https://ssl.gstatic.com/onebox/media/sports/logos/iVPY2n_k4Gbv7LdeK-_OA_96x96.png" alt="Bills Logo" class="h-20 w-20 mb-2"><span class="font-bold">Buffalo Bills</span></div>
+                        <span class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</span>
+                        <div class="flex flex-col items-center"><img id="opponent-logo" src="https://placehold.co/80x80/000/FFF?text=?" alt="Opponent Logo" class="h-20 w-20 mb-2"><span id="opponent-name" class="font-bold">Opponent</span></div>
+                    </div>
+                    <div id="countdown-timer" class="flex justify-center space-x-2 sm:space-x-4"></div>
+                    <div class="text-center mt-6 text-gray-600 dark:text-gray-400"><p id="kickoff-time" class="font-semibold"></p></div>
+                </div>
+
+                <!-- Gemini Insight Layer -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400">GEMINI ANALYSIS</h2>
+                             <p class="text-sm text-gray-500 dark:text-gray-400">Insights from Gemini 2.5 Pro.</p>
+                        </div>
+                        <button id="generate-insights-btn" class="bg-[var(--bills-blue)] text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition-colors disabled:opacity-50" disabled>
+                            Analyze
+                        </button>
+                    </div>
+                    <div id="gemini-output" class="text-sm text-gray-700 dark:text-gray-300 min-h-[150px]">
+                        Loading data before analysis is available...
+                    </div>
+                </div>
+
+                <!-- Trend Engine -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">TREND ENGINE</h2>
+                    <div id="trend-engine-output" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="lg:col-span-1 space-y-8">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">INJURY REPORT</h2>
+                    <div id="injury-reports" class="space-y-4"></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">SEASON SCHEDULE</h2>
+                    <div id="schedule-list" class="space-y-3"></div>
+                </div>
+                <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 rounded-lg text-center text-sm">
+                    For informational and personal use only. Not betting advice.
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+    // --- GLOBAL STATE ---
+    let liveData = null;
+    const propsToTrack = [
+        { player: "J.Allen", statKey: "rusher_yards", line: 35.5, label: "Rushing Yards" },
+        { player: "J.Allen", statKey: "passer_tds", line: 1.5, label: "Passing TDs" },
+        { player: "S.Diggs", statKey: "receiver_yards", line: 75.5, label: "Receiving Yards" },
+        { player: "J.Cook", statKey: "rusher_yards", line: 60.5, label: "Rushing Yards" },
+    ];
+
+    // --- GEMINI API INTEGRATION ---
+    function generateDataContextForGemini() {
+        if (!liveData) return null;
+
+        const billsTrends = propsToTrack.map(prop => {
+            const playerLogs = liveData.nfl_stats.player_game_logs[prop.player];
+            if (!playerLogs) return null;
+            const trend = calculateTrend(Object.values(playerLogs), prop.statKey, prop.line, 'over');
+            return {
+                player: prop.player,
+                stat: prop.label,
+                line: prop.line,
+                hitRatePercent: Math.round(trend.hitRate),
+                details: `Hit in ${trend.hits} of ${trend.total} games this season.`
+            };
+        }).filter(t => t !== null);
+        
+        const nextGame = findNextGame(liveData.espn_data.schedule);
+
+        return {
+            matchup: `Buffalo Bills vs. ${nextGame.opponent_name}`,
+            data_season: liveData.nfl_stats.data_season,
+            bills_trends: billsTrends,
+            odds: liveData.odds
+        };
+    }
+    
+    async function callGeminiAPI() {
+        // ... (Gemini API call logic is unchanged from the personal key version) ...
+        const generateButton = document.getElementById('generate-insights-btn');
+        const geminiOutput = document.getElementById('gemini-output');
+        generateButton.disabled = true;
+        geminiOutput.innerHTML = `<div class="flex items-center justify-center h-full"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--bills-blue)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Engaging Gemini 2.5 Pro...</span></div>`;
+
+        const dataContext = generateDataContextForGemini();
+        if (!dataContext) {
+            geminiOutput.innerHTML = `<p class="text-red-500">Error: Live data not available for analysis.</p>`;
+            return;
+        }
+        
+        const systemPrompt = "You are an expert Buffalo Bills analyst. Your job is to synthesize raw data into concise, easy-to-read insights. Be objective and quantitative. Focus only on the current season's data provided.";
+        const userQuery = `Based on the following data, provide a summary of key trends and potential informational bet ideas. Data: ${JSON.stringify(dataContext)}`;
+
+        const apiKey = "AIzaSyDawAmK32dAS0_fBIBm7EOwxCYyjTM9Djg"; // User's personal key
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-20:generateContent?key=${apiKey}`;
+        
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            tools: [{ "google_search": {} }]
+        };
+
+        try {
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+
+            if (candidate && candidate.content?.parts?.[0]?.text) {
+                geminiOutput.innerHTML = candidate.content.parts[0].text.replace(/\n/g, '<br>');
+            } else {
+                throw new Error("Invalid or empty response from Gemini.");
+            }
+        } catch (error) {
+            console.error("Gemini API call failed:", error);
+            geminiOutput.innerHTML = `<p class="text-red-500">Error generating analysis. Check the console.</p><p class="text-xs text-gray-400">${error.message}</p>`;
+        } finally {
+            generateButton.disabled = false;
+        }
+    }
+
+
+    // --- UI RENDERING FUNCTIONS ---
+    function calculateTrend(gameLogs, statKey, line, overUnder = 'over') {
+        let hits = 0;
+        const total = gameLogs.length;
+        if (total === 0) return { hitRate: 0, hits: 0, total: 0 };
+
+        gameLogs.forEach(game => {
+            const statValue = game[statKey];
+            if (statValue === undefined) return;
+            if ((overUnder === 'over' && statValue > line) || (overUnder === 'under' && statValue < line)) {
+                hits++;
+            }
+        });
+        return { hitRate: (hits / total) * 100, hits: hits, total: total };
+    }
+
+    function renderTrends() {
+        const playerGameLogs = liveData.nfl_stats.player_game_logs;
+        const trendContainer = document.getElementById('trend-engine-output');
+        trendContainer.innerHTML = '';
+        propsToTrack.forEach(prop => {
+            const playerLogs = playerGameLogs[prop.player];
+            if (!playerLogs) return;
+
+            const trend = calculateTrend(Object.values(playerLogs), prop.statKey, prop.line, 'over');
+            const trendDiv = document.createElement('div');
+            trendDiv.innerHTML = `<div class="flex items-center justify-between mb-1"><div><p class="font-bold">${prop.player}</p><p class="text-sm text-gray-600 dark:text-gray-300">${prop.label} - Line: ${prop.line}</p></div><div class="text-right"><p class="font-bold text-lg">${Math.round(trend.hitRate)}% <span class="text-sm font-normal text-gray-500">Over</span></p><p class="text-xs text-gray-500 dark:text-gray-400">Hit in ${trend.hits} of ${trend.total} games</p></div></div><div class="w-full trend-bar-bg rounded-full h-2.5 dark:bg-gray-700"><div class="trend-bar-fill h-2.5 rounded-full" style="width: ${trend.hitRate}%"></div></div>`;
+            trendContainer.appendChild(trendDiv);
+        });
+    }
+
+    function findNextGame(schedule) {
+        return schedule.find(game => game.date && new Date(game.date) > new Date());
+    }
+
+    let countdownInterval;
+    function startCountdown(kickoff) {
+        // ... (Countdown logic is unchanged) ...
+        if(countdownInterval)clearInterval(countdownInterval);const c=document.getElementById("countdown-timer"),t=new Date(kickoff).getTime();countdownInterval=setInterval(()=>{const e=(new Date).getTime(),o=t-e;if(o<0)return clearInterval(countdownInterval),void(c.innerHTML='<div class="text-xl font-bold text-[var(--bills-red)]">GAME IN PROGRESS</div>');const n=Math.floor(o/864e5),l=Math.floor(o%864e5/36e5),r=Math.floor(o%36e5/6e4),i=Math.floor(o%6e4/1e3);c.innerHTML=`<div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${n}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Days</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${l}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Hours</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${r}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Mins</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${i}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Secs</span></div>`},1e3)
+    }
+
+    function renderMatchup(game) {
+        document.getElementById("opponent-logo").src = game.opponent_logo || 'https://placehold.co/80x80/000/FFF?text=?';
+        document.getElementById("opponent-name").textContent = game.opponent_name;
+        document.getElementById("kickoff-time").textContent = (new Date(game.date)).toLocaleString("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit"});
+        startCountdown(game.date);
+    }
+
+    function renderInjuries() {
+        const injuryContainer = document.getElementById("injury-reports");
+        let injuryHtml = '';
+        const injuries = liveData.espn_data.injuries;
+        
+        if (!injuries || injuries.length === 0) {
+            injuryHtml = '<p class="text-sm text-gray-500 dark:text-gray-400">No injuries reported.</p>';
+        } else {
+            injuries.forEach(p => {
+                const statusClass = (status) => {
+                    switch(status?.toLowerCase()){
+                        case "out": return "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300";
+                        case "questionable": return "bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+                        default: return "bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200";
+                    }
+                };
+                injuryHtml += `<div class="flex items-center justify-between text-sm"><div><p class="font-semibold">${p.player_name} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">${p.position}</span></p><p class="text-xs text-gray-500 dark:text-gray-400">${p.detail || ''}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${statusClass(p.status)}">${p.status}</span></div>`;
+            });
+        }
+        injuryContainer.innerHTML = injuryHtml;
+    }
+
+    function renderSchedule() {
+        const container = document.getElementById("schedule-list");
+        container.innerHTML = "";
+        liveData.espn_data.schedule.forEach(game => {
+            const gameDiv = document.createElement("div");
+            gameDiv.className = "flex items-center justify-between text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50";
+            
+            const isUpcoming = new Date(game.date) > new Date();
+            let html = `<div><p class="font-semibold">Week ${game.week} vs ${game.opponent_name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${new Date(game.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</p></div>`;
+            html += isUpcoming ? `<span class="text-xs font-medium text-gray-600 dark:text-gray-300">UPCOMING</span>` : `<span class="font-bold text-gray-500">PLAYED</span>`;
+            gameDiv.innerHTML = html;
+            container.appendChild(gameDiv);
+        });
+    }
+
+    // --- INITIALIZE APP ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Theme Toggle Logic...
+        const themeToggleBtn=document.getElementById("theme-toggle"),themeToggleDarkIcon=document.getElementById("theme-toggle-dark-icon"),themeToggleLightIcon=document.getElementById("theme-toggle-light-icon");localStorage.getItem("color-theme")==="dark"||!("color-theme"in localStorage)&&window.matchMedia("(prefers-color-scheme: dark)").matches?(document.documentElement.classList.add("dark"),themeToggleLightIcon.classList.remove("hidden")):(document.documentElement.classList.remove("dark"),themeToggleDarkIcon.classList.remove("hidden")),themeToggleBtn.addEventListener("click",function(){themeToggleDarkIcon.classList.toggle("hidden"),themeToggleLightIcon.classList.toggle("hidden"),localStorage.getItem("color-theme")?localStorage.getItem("color-theme")==="light"?(document.documentElement.classList.add("dark"),localStorage.setItem("color-theme","dark")):(document.documentElement.classList.remove("dark"),localStorage.setItem("color-theme","light")):document.documentElement.classList.contains("dark")?(document.documentElement.classList.remove("dark"),localStorage.setItem("color-theme","light")):(document.documentElement.classList.add("dark"),localStorage.setItem("color-theme","dark"))});
+
+        document.getElementById('generate-insights-btn').addEventListener('click', callGeminiAPI);
+
+        try {
+            // Fetch the live data
+            const response = await fetch('dashboard_data.json');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            liveData = await response.json();
+
+            // Update UI with the live data
+            document.getElementById('data-status').textContent = `Live | Data from Season ${liveData.nfl_stats.data_season}`;
+            document.getElementById('generate-insights-btn').disabled = false;
+            
+            const nextGame = findNextGame(liveData.espn_data.schedule);
+            if (nextGame) renderMatchup(nextGame);
+            
+            renderSchedule();
+            renderInjuries();
+            renderTrends();
+
+        } catch (error) {
+            console.error("Failed to load or process dashboard data:", error);
+            document.getElementById('data-status').textContent = "Error loading data.";
+            document.getElementById('app').innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert"><p class="font-bold">Fatal Error</p><p>Could not load the <code>dashboard_data.json</code> file. Make sure you have run the Python pipeline script successfully.</p></div>`;
+        }
+    });
+</script>
+</body>
+</html>
+
