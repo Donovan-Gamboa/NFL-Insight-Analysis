@@ -2,7 +2,7 @@
 
 A web-based dashboard that combines a **live data pipeline**, **interactive stats explorer**, and **Google Gemini analysis** to deliver smart, data-driven insights for the Buffalo Bills.
 
-![NFL Insight Dashboard Screenshot](assets/dashboard_screenshot.png)
+![NFL Insight Dashboard Screenshot](assets/dashboard_screenshot.PNG)
 
 
 ---
