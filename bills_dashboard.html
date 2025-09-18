@@ -5,37 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buffalo Bills AI Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
         .dark body { background-color: #0d1117; }
         :root { --bills-blue: #00338D; --bills-red: #C60C30; }
-        .countdown-value { font-size: 2.5rem; font-weight: 900; line-height: 1; }
-        .countdown-label { font-size: 0.75rem; text-transform: uppercase; }
-        .trend-bar-bg { background-color: #e5e7eb; }
-        .dark .trend-bar-bg { background-color: #374151; }
-        .trend-bar-fill { background-color: #34d399; }
-        .insight-card { border-left: 4px solid var(--bills-blue); }
-        .dark .insight-card { border-left-color: #60a5fa; }
-        .confidence-high { background-color: #10b981; color: white; }
-        .confidence-medium { background-color: #f59e0b; color: white; }
+        .player-row-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding: 0 1.5rem;
+        }
+        .player-row.open .player-row-detail {
+            max-height: 1000px;
+            padding: 1.5rem;
+        }
+        .player-row.open svg { transform: rotate(180deg); }
+        
+        .analyst-preamble {
+            background-color: #eef2ff;
+            border-left: 4px solid #4f46e5;
+            padding: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+            color: #4338ca;
+        }
+        .dark .analyst-preamble {
+            background-color: #1e293b;
+            border-color: #6366f1;
+            color: #a5b4fc;
+        }
+        .bet-category {
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.25rem;
+        }
+        .dark .bet-category {
+            color: #94a3b8;
+            border-color: #334155;
+        }
+        .bet-card {
+            border-left: 4px solid var(--bills-blue);
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background-color: #f8fafc;
+        }
+        .dark .bet-card {
+            background-color: #161b22;
+            border-color: #2563eb;
+        }
+        .bet-card strong {
+            color: var(--bills-blue);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        .dark .bet-card strong {
+            color: #60a5fa;
+        }
+        .bet-card p {
+            font-size: 0.875rem;
+        }
+        .bet-card h4 {
+            font-weight: 600;
+            color: #334155;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .dark .bet-card h4 {
+            color: #cbd5e1;
+        }
     </style>
 </head>
-<body class="antialiased text-gray-800 dark:text-gray-200 transition-colors duration-300">
+<body class="antialiased text-gray-800 dark:text-gray-200">
 
     <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8">
         <!-- Header -->
         <header class="flex items-center justify-between mb-8">
             <div class="flex items-center space-x-4">
-                <img src="https://ssl.gstatic.com/onebox/media/sports/logos/iVPY2n_k4Gbv7LdeK-_OA_96x96.png" alt="Buffalo Bills Logo" class="h-16 w-16">
+                <img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="Buffalo Bills Logo" class="h-16 w-16">
                 <div>
                     <h1 class="text-3xl font-bold text-[var(--bills-blue)] dark:text-blue-400">Bills AI Dashboard</h1>
                     <p id="data-status" class="text-gray-500 dark:text-gray-400">Loading live data...</p>
                 </div>
             </div>
-             <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+            <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5">
                 <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
                 <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 5.05A1 1 0 016.465 3.636l.707.707a1 1 0 01-1.414 1.414l-.707-.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1zM13 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM4.93 14.95a1 1 0 011.414 0l.707-.707a1 1 0 01-1.414-1.414l-.707.707z"></path></svg>
             </button>
@@ -43,43 +101,28 @@
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-8">
-                <!-- Countdown -->
+                <div id="matchup-card" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"></div>
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                    <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">UPCOMING MATCHUP</h2>
-                    <div id="next-game-info" class="flex items-center justify-around mb-6 text-center">
-                         <div class="flex flex-col items-center"><img src="https://ssl.gstatic.com/onebox/media/sports/logos/iVPY2n_k4Gbv7LdeK-_OA_96x96.png" alt="Bills Logo" class="h-20 w-20 mb-2"><span class="font-bold">Buffalo Bills</span></div>
-                        <span class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</span>
-                        <div class="flex flex-col items-center"><img id="opponent-logo" src="https://placehold.co/80x80/000/FFF?text=?" alt="Opponent Logo" class="h-20 w-20 mb-2"><span id="opponent-name" class="font-bold">Opponent</span></div>
-                    </div>
-                    <div id="countdown-timer" class="flex justify-center space-x-2 sm:space-x-4"></div>
-                    <div class="text-center mt-6 text-gray-600 dark:text-gray-400"><p id="kickoff-time" class="font-semibold"></p></div>
+                    <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">PLAYER STATS & ODDS EXPLORER</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Click any player to see their historical performance. Live odds will populate when available.</p>
+                    <div id="player-explorer-output" class="space-y-2"></div>
                 </div>
-
-                <!-- Gemini Insight Layer -->
+            </div>
+            <div class="lg:col-span-1 space-y-8">
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400">GEMINI ANALYSIS</h2>
-                             <p class="text-sm text-gray-500 dark:text-gray-400">Insights from Gemini 2.5 Pro.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Insights from "Buffalo Sharp"</p>
                         </div>
                         <button id="generate-insights-btn" class="bg-[var(--bills-blue)] text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 transition-colors disabled:opacity-50" disabled>
                             Analyze
                         </button>
                     </div>
                     <div id="gemini-output" class="text-sm text-gray-700 dark:text-gray-300 min-h-[150px]">
-                        Loading data before analysis is available...
+                        Click 'Analyze' for an expert-level betting card.
                     </div>
                 </div>
-
-                <!-- Trend Engine -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                    <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">TREND ENGINE</h2>
-                    <div id="trend-engine-output" class="space-y-4"></div>
-                </div>
-            </div>
-
-            <!-- Right Column -->
-            <div class="lg:col-span-1 space-y-8">
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
                     <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">INJURY REPORT</h2>
                     <div id="injury-reports" class="space-y-4"></div>
@@ -88,7 +131,7 @@
                     <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">SEASON SCHEDULE</h2>
                     <div id="schedule-list" class="space-y-3"></div>
                 </div>
-                <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 rounded-lg text-center text-sm">
+                 <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/50 rounded-lg text-center text-sm">
                     For informational and personal use only. Not betting advice.
                 </div>
             </div>
@@ -96,203 +139,420 @@
     </div>
 
 <script>
-    // --- GLOBAL STATE ---
     let liveData = null;
-    const propsToTrack = [
-        { player: "J.Allen", statKey: "rusher_yards", line: 35.5, label: "Rushing Yards" },
-        { player: "J.Allen", statKey: "passer_tds", line: 1.5, label: "Passing TDs" },
-        { player: "S.Diggs", statKey: "receiver_yards", line: 75.5, label: "Receiving Yards" },
-        { player: "J.Cook", statKey: "rusher_yards", line: 60.5, label: "Rushing Yards" },
-    ];
 
-    // --- GEMINI API INTEGRATION ---
-    function generateDataContextForGemini() {
-        if (!liveData) return null;
+    // --- UTILITY FUNCTIONS ---
+    const normalizePlayerName = (name) => {
+        const simpleNorm = name.replace(/\./g, "").replace(/\s/g, "").toLowerCase();
+        const variants = { "jallen": "joshallen", "jaallen": "joshallen", "kcoleman": "keoncoleman", "jcook": "jamescook", "dkincaid": "daltonkincaid", "dknox": "dawsonknox", "kshakir": "khalilshakir", "rdavis": "raydavis", "jpalmer": "joshuapalmer" };
+        return variants[simpleNorm] || simpleNorm;
+    };
 
-        const billsTrends = propsToTrack.map(prop => {
-            const playerLogs = liveData.nfl_stats.player_game_logs[prop.player];
-            if (!playerLogs) return null;
-            const trend = calculateTrend(Object.values(playerLogs), prop.statKey, prop.line, 'over');
-            return {
-                player: prop.player,
-                stat: prop.label,
-                line: prop.line,
-                hitRatePercent: Math.round(trend.hitRate),
-                details: `Hit in ${trend.hits} of ${trend.total} games this season.`
+    const marketToStatKey = { 
+        'player_pass_yds': 'passer_yards', 'player_pass_tds': 'passer_tds', 'player_pass_attempts': 'passer_attempts', 'player_pass_completions': 'passer_completions',
+        'player_rush_yds': 'rusher_yards', 'player_rush_attempts': 'rusher_attempts',
+        'player_reception_yds': 'receiver_yards', 'player_receptions': 'receiver_receptions', 
+        'player_tds': ['rusher_anytime_td', 'receiver_anytime_td'], 'player_anytime_td': ['rusher_anytime_td', 'receiver_anytime_td'], 'player_1st_td': ['rusher_anytime_td', 'receiver_anytime_td']
+    };
+    const findNextGame = (schedule) => schedule.find(g => g.date && new Date(g.date) > new Date());
+    
+    function getOpponentKeyPlayers(opponentStats) {
+        if (!opponentStats || !opponentStats.current_season || !opponentStats.current_season.player_game_logs) {
+            return {};
+        }
+        const playerLogs = opponentStats.current_season.player_game_logs;
+        const playerAvgs = {};
+
+        for (const normName in playerLogs) {
+            const games = Object.values(playerLogs[normName]);
+            if (games.length === 0) continue;
+            const totals = { pass_yards: 0, rush_yards: 0, rec_yards: 0, games: games.length, display_name: games[0].display_name };
+            
+            games.forEach(game => {
+                totals.pass_yards += game.passer_yards || 0;
+                totals.rush_yards += game.rusher_yards || 0;
+                totals.rec_yards += game.receiver_yards || 0;
+            });
+            playerAvgs[normName] = {
+                displayName: totals.display_name,
+                avgPassYards: (totals.pass_yards / totals.games),
+                avgRushYards: (totals.rush_yards / totals.games),
+                avgRecYards: (totals.rec_yards / totals.games),
             };
-        }).filter(t => t !== null);
-        
-        const nextGame = findNextGame(liveData.espn_data.schedule);
+        }
+        const players = Object.values(playerAvgs);
+        if (players.length === 0) return {};
+
+        const topPasser = players.reduce((a, b) => a.avgPassYards > b.avgPassYards ? a : b);
+        const topRusher = players.reduce((a, b) => a.avgRushYards > b.avgRushYards ? a : b);
+        const topReceiver = players.reduce((a, b) => a.avgRecYards > b.avgRecYards ? a : b);
 
         return {
-            matchup: `Buffalo Bills vs. ${nextGame.opponent_name}`,
-            data_season: liveData.nfl_stats.data_season,
-            bills_trends: billsTrends,
-            odds: liveData.odds
+            top_passer: `${topPasser.displayName} (${topPasser.avgPassYards.toFixed(1)} pass yds/game)`,
+            top_rusher: `${topRusher.displayName} (${topRusher.avgRushYards.toFixed(1)} rush yds/game)`,
+            top_receiver: `${topReceiver.displayName} (${topReceiver.avgRecYards.toFixed(1)} rec yds/game)`,
         };
     }
-    
+
     async function callGeminiAPI() {
-        // ... (Gemini API call logic is unchanged from the personal key version) ...
         const generateButton = document.getElementById('generate-insights-btn');
         const geminiOutput = document.getElementById('gemini-output');
+
         generateButton.disabled = true;
-        geminiOutput.innerHTML = `<div class="flex items-center justify-center h-full"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--bills-blue)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Engaging Gemini 2.5 Pro...</span></div>`;
+        geminiOutput.innerHTML = `<div class="flex items-center justify-center h-full"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--bills-blue)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Consulting "Buffalo Sharp"...</span></div>`;
 
-        const dataContext = generateDataContextForGemini();
-        if (!dataContext) {
-            geminiOutput.innerHTML = `<p class="text-red-500">Error: Live data not available for analysis.</p>`;
-            return;
-        }
+        const nextGame = findNextGame(liveData.espn_data.schedule);
+        const spreads = liveData.odds?.game_odds?.spreads || [];
+        const billsSpread = spreads.find(o => o.name === 'Buffalo Bills');
+        const gameTotal = liveData.odds?.game_odds?.totals?.[0];
         
-        const systemPrompt = "You are an expert Buffalo Bills analyst. Your job is to synthesize raw data into concise, easy-to-read insights. Be objective and quantitative. Focus only on the current season's data provided.";
-        const userQuery = `Based on the following data, provide a summary of key trends and potential informational bet ideas. Data: ${JSON.stringify(dataContext)}`;
+        const opponentPrevRankings = liveData.team_rankings?.[nextGame.opponent_abbr] || {};
+        const opponentCurrentRankings = liveData.current_team_rankings?.[nextGame.opponent_abbr] || {};
+        
+        const opponentKeyPlayers = getOpponentKeyPlayers(liveData.opponent_nfl_stats);
+        
+        // --- MODIFICATION: Add full injury reports for both teams ---
+        const promptData = {
+            gameLine: {
+                spread: `Buffalo Bills ${billsSpread ? billsSpread.point : 'N/A'}`,
+                total: gameTotal ? gameTotal.point : 'N/A'
+            },
+            playerTrends: analyzeAllPlayerTrends(),
+            billsPlayerStats: {
+                current_season: liveData.nfl_stats?.current_season?.player_game_logs || {},
+                previous_season: liveData.nfl_stats?.previous_season?.player_game_logs || {}
+            },
+            bills_injuries: liveData.espn_data.injuries || [], // Added Bills injuries
+            opponentProfile: {
+                name: nextGame.opponent_name,
+                rank_offense_yards: opponentPrevRankings.rank_offense_yards,
+                rank_defense_yards: opponentPrevRankings.rank_defense_yards,
+                rank_pass_defense_yards: opponentPrevRankings.rank_pass_defense_yards,
+                rank_rush_defense_yards: opponentPrevRankings.rank_rush_defense_yards,
+                current_rank_offense_yards: opponentCurrentRankings.rank_offense_yards,
+                current_rank_defense_yards: opponentCurrentRankings.rank_defense_yards,
+                current_rank_pass_defense_yards: opponentCurrentRankings.rank_pass_defense_yards,
+                current_rank_rush_defense_yards: opponentCurrentRankings.rank_rush_defense_yards,
+                opponent_injuries: liveData.espn_data.opponent_injuries || [], // Added opponent injuries
+                key_players: opponentKeyPlayers
+            },
+            opponentPlayerStats: {
+                current_season: liveData.opponent_nfl_stats?.current_season?.player_game_logs || {},
+                previous_season: liveData.opponent_nfl_stats?.previous_season?.player_game_logs || {}
+            }
+        };
 
-        const apiKey = "AIzaSyDawAmK32dAS0_fBIBm7EOwxCYyjTM9Djg"; // User's personal key
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-20:generateContent?key=${apiKey}`;
+        // --- MODIFICATION: Updated system prompt to guide the AI on using injury data ---
+        const systemPrompt = `You are "Buffalo Sharp," a world-class sports betting analyst renowned for your deep, data-driven, and context-aware insights on the Buffalo Bills. You don't just read stats; you interpret them through the lens of matchups, game script, and critical context like injuries. Your tone is sharp, confident, and direct.
+
+        **Core Philosophy:** Your analysis MUST go beyond simple hit rates. The key to winning is understanding *why* those stats exist and how the upcoming matchup and personnel changes will affect them. 
+        
+        **CRITICAL INSTRUCTION: DUAL RANKING ANALYSIS**
+        When analyzing the opponent, you are provided with two sets of rankings: Previous Season and Current Season. Your analysis **MUST** acknowledge and compare these two sets of rankings to identify trends or regressions. A significant difference is a key analytical point.
+
+        **CRITICAL INSTRUCTION: INJURY ANALYSIS**
+        You are provided with full injury reports for BOTH the Bills (\`bills_injuries\`) and their opponent (\`opponent_injuries\`). Your analysis **MUST** factor in how key injuries will impact the game.
+        * **Identify Key Absences:** Mention specific key players who are 'Out' or 'Questionable'.
+        * **Analyze the Impact:** Explain how these absences will affect team strategy. For example, "With Matt Milano out, the Bills' run defense is vulnerable," or "The Dolphins missing their top two cornerbacks means the Bills' passing game has a significant advantage." This demonstrates expert-level insight.
+
+        **Instructions:**
+        Your entire response must be a complete betting card, starting with your overall thesis for the game.
+
+        **0. Analyst's Take (Preamble)**
+        Begin with a \`<div class="analyst-preamble">\`. In 2-3 sentences, state your overall betting angle. This thesis **must** be informed by your dual ranking and injury analysis.
+            
+        **Part 1: Core Card - Best Bet By Category (5 Bets)**
+        For the five statistical categories, provide the single best prop bet. The justification for each **must integrate matchup and injury analysis**.
+        * Example Justification: "<strong>Josh Allen OVER 275.5 Passing Yards</strong><p>Justification: Allen has cleared this line in 7 of his last 10 games, but this pick is about the matchup. The Dolphins rank 28th against the pass and will be without their top corner, creating a prime funnel for the Bills' passing game. Confidence: High</p>"
+        1.  Passing Yards
+        2.  Rushing Yards
+        3.  Receiving Yards
+        4.  Receptions
+        5.  Anytime Touchdown Scorer
+        6.  Moneyline
+
+        **Part 2: Parlays by Confidence Tier (5 Parlays)**
+        Build five parlays based on your game thesis. Justifications should explain why the legs correlate or offer combined value.
+        1.  **High Confidence Parlays (2 Parlays):** Two 2 or 3-leg parlays.
+        2.  **Medium Confidence Parlays (2 Parlays):** Two 2 or 3-leg parlays.
+        3.  **Low Confidence "Lottery Ticket" Parlay (1 Parlay):** One 3+ leg parlay.
+
+        **Part 3: The Sharp Angle (1 Bet)**
+        Provide one "Sharp Angle" or "Contrarian Pick" backed by a specific data point, matchup, or injury anomaly.
+
+        **Universal Requirements:**
+        * **Justify Everything with Context:** Every justification must reference the provided data.
+        * **Assign Confidence:** Assign **High**, **Medium**, or **Low** confidence to all recommendations.
+        * **Formatting:**
+            * Your ENTIRE response MUST be valid HTML.
+            * Use the specified div classes: \`analyst-preamble\`, \`bet-category\`, \`bet-card\`.
+            * Use sub-headers like \`<h4>High Confidence Parlays</h4>\` inside Part 2.
+            * **CRITICAL: Do NOT wrap your response in markdown \`\`\`html, \`\`\`, or any other markdown.**`;
+        // --- END MODIFICATION ---
+                
+        const userQuery = `Please provide a full, expert-level betting card for the upcoming Buffalo Bills vs. ${nextGame.opponent_name} game. Analyze the provided JSON data to inform your picks.
+        
+        **Matchup Data Packet:**
+        ${JSON.stringify(promptData, null, 2)}
+        `;
         
         const payload = {
             contents: [{ parts: [{ text: userQuery }] }],
             systemInstruction: { parts: [{ text: systemPrompt }] },
-            tools: [{ "google_search": {} }]
+            tools: [{"google_search": {}}]
         };
 
         try {
-            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            const response = await fetch('/generate-insights', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+            }
+
             const result = await response.json();
             const candidate = result.candidates?.[0];
 
-            if (candidate && candidate.content?.parts?.[0]?.text) {
-                geminiOutput.innerHTML = candidate.content.parts[0].text.replace(/\n/g, '<br>');
-            } else {
-                throw new Error("Invalid or empty response from Gemini.");
+            if (candidate?.content?.parts?.[0]?.text) {
+                geminiOutput.innerHTML = candidate.content.parts[0].text;
+            } else { 
+                throw new Error("Invalid response structure from the Gemini API."); 
             }
         } catch (error) {
             console.error("Gemini API call failed:", error);
-            geminiOutput.innerHTML = `<p class="text-red-500">Error generating analysis. Check the console.</p><p class="text-xs text-gray-400">${error.message}</p>`;
+            geminiOutput.innerHTML = `<p class="text-red-500 text-center"><strong>Analysis Failed</strong><br>The AI is currently busy or unavailable. This can happen due to high demand. Please try again in a moment.</p>`;
         } finally {
             generateButton.disabled = false;
         }
     }
 
-
-    // --- UI RENDERING FUNCTIONS ---
-    function calculateTrend(gameLogs, statKey, line, overUnder = 'over') {
-        let hits = 0;
+    function calculateTrend(gameLogs = [], statKeys, line) {
+        let hits = 0, totalStat = 0;
         const total = gameLogs.length;
-        if (total === 0) return { hitRate: 0, hits: 0, total: 0 };
+        if (total === 0) return { hitRate: 0, hits, total, avg: 0 };
 
         gameLogs.forEach(game => {
-            const statValue = game[statKey];
-            if (statValue === undefined) return;
-            if ((overUnder === 'over' && statValue > line) || (overUnder === 'under' && statValue < line)) {
-                hits++;
+            let gameStat = 0;
+            if (Array.isArray(statKeys)) {
+                gameStat = statKeys.some(key => game[key] >= 1) ? 1 : 0;
+            } else {
+                gameStat = game[statKeys] || 0;
             }
+
+            if (line > -1) { 
+                if (gameStat > line) hits++;
+            } else { 
+                if(gameStat > 0) hits++;
+            }
+            totalStat += gameStat;
         });
-        return { hitRate: (hits / total) * 100, hits: hits, total: total };
-    }
-
-    function renderTrends() {
-        const playerGameLogs = liveData.nfl_stats.player_game_logs;
-        const trendContainer = document.getElementById('trend-engine-output');
-        trendContainer.innerHTML = '';
-        propsToTrack.forEach(prop => {
-            const playerLogs = playerGameLogs[prop.player];
-            if (!playerLogs) return;
-
-            const trend = calculateTrend(Object.values(playerLogs), prop.statKey, prop.line, 'over');
-            const trendDiv = document.createElement('div');
-            trendDiv.innerHTML = `<div class="flex items-center justify-between mb-1"><div><p class="font-bold">${prop.player}</p><p class="text-sm text-gray-600 dark:text-gray-300">${prop.label} - Line: ${prop.line}</p></div><div class="text-right"><p class="font-bold text-lg">${Math.round(trend.hitRate)}% <span class="text-sm font-normal text-gray-500">Over</span></p><p class="text-xs text-gray-500 dark:text-gray-400">Hit in ${trend.hits} of ${trend.total} games</p></div></div><div class="w-full trend-bar-bg rounded-full h-2.5 dark:bg-gray-700"><div class="trend-bar-fill h-2.5 rounded-full" style="width: ${trend.hitRate}%"></div></div>`;
-            trendContainer.appendChild(trendDiv);
-        });
-    }
-
-    function findNextGame(schedule) {
-        return schedule.find(game => game.date && new Date(game.date) > new Date());
-    }
-
-    let countdownInterval;
-    function startCountdown(kickoff) {
-        // ... (Countdown logic is unchanged) ...
-        if(countdownInterval)clearInterval(countdownInterval);const c=document.getElementById("countdown-timer"),t=new Date(kickoff).getTime();countdownInterval=setInterval(()=>{const e=(new Date).getTime(),o=t-e;if(o<0)return clearInterval(countdownInterval),void(c.innerHTML='<div class="text-xl font-bold text-[var(--bills-red)]">GAME IN PROGRESS</div>');const n=Math.floor(o/864e5),l=Math.floor(o%864e5/36e5),r=Math.floor(o%36e5/6e4),i=Math.floor(o%6e4/1e3);c.innerHTML=`<div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${n}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Days</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${l}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Hours</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${r}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Mins</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="countdown-value text-[var(--bills-blue)] dark:text-blue-400">${i}</span><span class="countdown-label text-gray-500 dark:text-gray-400">Secs</span></div>`},1e3)
-    }
-
-    function renderMatchup(game) {
-        document.getElementById("opponent-logo").src = game.opponent_logo || 'https://placehold.co/80x80/000/FFF?text=?';
-        document.getElementById("opponent-name").textContent = game.opponent_name;
-        document.getElementById("kickoff-time").textContent = (new Date(game.date)).toLocaleString("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit"});
-        startCountdown(game.date);
-    }
-
-    function renderInjuries() {
-        const injuryContainer = document.getElementById("injury-reports");
-        let injuryHtml = '';
-        const injuries = liveData.espn_data.injuries;
         
-        if (!injuries || injuries.length === 0) {
-            injuryHtml = '<p class="text-sm text-gray-500 dark:text-gray-400">No injuries reported.</p>';
-        } else {
-            injuries.forEach(p => {
-                const statusClass = (status) => {
-                    switch(status?.toLowerCase()){
-                        case "out": return "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300";
-                        case "questionable": return "bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-                        default: return "bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200";
-                    }
-                };
-                injuryHtml += `<div class="flex items-center justify-between text-sm"><div><p class="font-semibold">${p.player_name} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">${p.position}</span></p><p class="text-xs text-gray-500 dark:text-gray-400">${p.detail || ''}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${statusClass(p.status)}">${p.status}</span></div>`;
-            });
-        }
-        injuryContainer.innerHTML = injuryHtml;
+        return { 
+            hitRate: total > 0 ? (hits / total) * 100 : 0, 
+            hits, 
+            total, 
+            avg: total > 0 ? (totalStat / total).toFixed(1) : 0
+        };
     }
 
-    function renderSchedule() {
-        const container = document.getElementById("schedule-list");
-        container.innerHTML = "";
-        liveData.espn_data.schedule.forEach(game => {
-            const gameDiv = document.createElement("div");
-            gameDiv.className = "flex items-center justify-between text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50";
-            
-            const isUpcoming = new Date(game.date) > new Date();
-            let html = `<div><p class="font-semibold">Week ${game.week} vs ${game.opponent_name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${new Date(game.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</p></div>`;
-            html += isUpcoming ? `<span class="text-xs font-medium text-gray-600 dark:text-gray-300">UPCOMING</span>` : `<span class="font-bold text-gray-500">PLAYED</span>`;
-            gameDiv.innerHTML = html;
-            container.appendChild(gameDiv);
+    function analyzeAllPlayerTrends() {
+        const trends = {};
+        const playerProps = liveData.odds?.player_props || {};
+        const currentLogs = liveData.nfl_stats.current_season?.player_game_logs || {};
+        const prevLogs = liveData.nfl_stats.previous_season?.player_game_logs || {};
+
+        for (const normName in playerProps) {
+            const player = playerProps[normName];
+            trends[player.display_name] = {};
+            const currentPlayerLogs = Object.values(currentLogs[normName] || {});
+            const prevPlayerLogs = Object.values(prevLogs[normName] || {});
+
+            for (const marketKey in player.markets) {
+                const overOutcome = player.markets[marketKey].find(o => o.name === 'Over' || o.price);
+                if (overOutcome) {
+                    const line = overOutcome.point !== undefined ? overOutcome.point : -1;
+                    const statKey = marketToStatKey[marketKey];
+                    if (statKey) {
+                        const allLogs = [...currentPlayerLogs, ...prevPlayerLogs];
+                        const combinedTrend = calculateTrend(allLogs, statKey, line);
+
+                        trends[player.display_name][marketKey] = {
+                            line: line,
+                            odds: overOutcome.price,
+                            combinedHitRate: `${combinedTrend.hits}/${combinedTrend.total} (${Math.round(combinedTrend.hitRate)}%)`
+                        };
+                    }
+                }
+            }
+        }
+        return trends;
+    }
+
+    // --- RENDER FUNCTIONS ---
+    function renderPlayerExplorer() {
+        const container = document.getElementById('player-explorer-output');
+        container.innerHTML = '';
+        const currentLogs = liveData.nfl_stats.current_season?.player_game_logs || {};
+        const prevLogs = liveData.nfl_stats.previous_season?.player_game_logs || {};
+        const playerProps = liveData.odds?.player_props || {};
+        
+        const allPlayerDisplayNames = [...new Set(
+            Object.values(currentLogs).concat(Object.values(prevLogs))
+            .flatMap(playerLogsByName => Object.values(playerLogsByName).map(log => log.display_name))
+        )].sort();
+
+        allPlayerDisplayNames.forEach(displayName => {
+            const playerRow = document.createElement('div');
+            playerRow.className = 'player-row bg-gray-50 dark:bg-gray-900/50 rounded-lg';
+            playerRow.innerHTML = `<div class="player-row-header flex items-center justify-between p-4 cursor-pointer"><span class="font-bold">${displayName}</span><svg class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></div><div class="player-row-detail border-t border-gray-200 dark:border-gray-700"></div>`;
+            container.appendChild(playerRow);
+
+            playerRow.querySelector('.player-row-header').addEventListener('click', () => {
+                const detailContainer = playerRow.querySelector('.player-row-detail');
+                if (detailContainer.innerHTML === '') {
+                    let detailHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">';
+                    const normName = normalizePlayerName(displayName);
+                    const oddsData = playerProps[normName];
+                    const currentPlayerLogs = Object.values(currentLogs[normName] || {});
+                    const prevPlayerLogs = Object.values(prevLogs[normName] || {});
+
+                    const allPossibleStats = new Set();
+                    [...currentPlayerLogs, ...prevPlayerLogs].forEach(log => {
+                        Object.keys(log).forEach(key => {
+                            if(key.includes('_yards') || key.includes('_tds') || key.includes('_receptions') || key.includes('_attempts') || key.includes('_completions') || key.includes('anytime_td')) {
+                                allPossibleStats.add(key);
+                            }
+                        });
+                    });
+
+                    const statToMarketKey = {};
+                    for(const market in marketToStatKey){
+                        const stat = marketToStatKey[market];
+                        if(Array.isArray(stat)){
+                           stat.forEach(s => statToMarketKey[s] = market);
+                        } else {
+                           statToMarketKey[stat] = market;
+                        }
+                    }
+
+                    if (allPossibleStats.size > 0) {
+                        const sortedStats = Array.from(allPossibleStats).sort();
+                        sortedStats.forEach(statKey => {
+                            const marketKey = statToMarketKey[statKey];
+                            const marketData = oddsData?.markets?.[marketKey];
+                            const overOutcome = marketData?.find(o => o.name === 'Over' || o.price);
+                            
+                            const line = overOutcome?.point !== undefined ? overOutcome.point : -1;
+
+                            const currentTrend = calculateTrend(currentPlayerLogs, statKey, line);
+                            const prevTrend = calculateTrend(prevPlayerLogs, statKey, line);
+                            
+                            const propLabel = statKey.replace(/_/g, ' ').replace(/(^\w{1})|(\s+\w{1})/g, l => l.toUpperCase()).replace('Anytime Td', 'Anytime TD');
+                            
+                            let statDisplay;
+                            if (overOutcome) {
+                                statDisplay = `<div class="flex justify-between items-center">
+                                                    <span>This Season Hit Rate:</span>
+                                                    <span class="font-mono font-bold ${currentTrend.hitRate >= 50 ? 'text-green-500' : 'text-red-500'}">${currentTrend.hits}/${currentTrend.total} (${Math.round(currentTrend.hitRate)}%)</span>
+                                                </div>
+                                                <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                                                    <span>Last Season Hit Rate:</span>
+                                                    <span class="font-mono">${prevTrend.hits}/${prevTrend.total} (${Math.round(prevTrend.hitRate)}%)</span>
+                                                </div>`;
+                            } else {
+                                const currentAvg = currentTrend.avg > 0 ? `${currentTrend.avg} avg` : `${currentTrend.hits} total`;
+                                const prevAvg = prevTrend.avg > 0 ? `${prevTrend.avg} avg` : `${prevTrend.hits} total`;
+                                statDisplay = `<div class="flex justify-between items-center">
+                                                    <span>This Season:</span>
+                                                    <span class="font-mono font-bold">${currentAvg}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                                                    <span>Last Season:</span>
+                                                    <span class="font-mono">${prevAvg}</span>
+                                                </div>`;
+                            }
+
+                            detailHTML += `<div class="text-sm border-b dark:border-gray-700 pb-4">
+                                <div class="flex justify-between items-baseline">
+                                    <p class="font-semibold">${propLabel} ${overOutcome ? ` - Over ${line}` : ''}</p>
+                                    <p class="font-bold text-lg ${overOutcome ? 'text-[var(--bills-blue)] dark:text-blue-400' : 'text-gray-400'}">${overOutcome ? overOutcome.price : 'N/A'}</p>
+                                </div>
+                                <div class="mt-2 pt-2 border-t dark:border-gray-600 space-y-1">
+                                    ${statDisplay}
+                                </div>
+                            </div>`;
+                        });
+                    } else {
+                        detailHTML += `<p class="text-sm text-gray-500 col-span-full">No historical stats found for this player.</p>`;
+                    }
+                    
+                    detailHTML += '</div>';
+                    detailContainer.innerHTML = detailHTML;
+                }
+                playerRow.classList.toggle('open');
+            });
         });
     }
 
-    // --- INITIALIZE APP ---
+    let countdownInterval;function startCountdown(kickoff){if(countdownInterval)clearInterval(countdownInterval);const c=document.getElementById("countdown-timer"),t=new Date(kickoff).getTime();countdownInterval=setInterval(()=>{const e=(new Date).getTime(),o=t-e;if(o<0)return clearInterval(countdownInterval),void(c.innerHTML='<div class="text-xl font-bold text-[var(--bills-red)]">GAME IN PROGRESS</div>');const n=Math.floor(o/864e5),l=Math.floor(o%864e5/36e5),r=Math.floor(o%36e5/6e4),i=Math.floor(o%6e4/1e3);c.innerHTML=`<div class="flex justify-center space-x-2 sm:space-x-4"><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${n}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Days</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${l}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Hours</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${r}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Mins</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${i}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Secs</span></div></div>`},1e3)}
+    function renderMatchupCard(){const container=document.getElementById('matchup-card');const nextGame=findNextGame(liveData.espn_data.schedule);if(!nextGame){container.innerHTML=`<h2 class="text-xl font-bold text-center">Off-season</h2><p class="text-center text-gray-500">No upcoming games found.</p>`;return}
+    const spreads=liveData.odds?.game_odds?.spreads||[];const totals=liveData.odds?.game_odds?.totals||[];const billsSpread=spreads.find(o=>o.name==='Buffalo Bills');const gameTotal=totals[0];container.innerHTML=`<h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">UPCOMING MATCHUP</h2><div class="flex items-center justify-around mb-6 text-center"><div class="flex flex-col items-center"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="Bills Logo" class="h-20 w-20 mb-2"><span class="font-bold">Buffalo Bills</span></div><span class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</span><div class="flex flex-col items-center"><img src="${nextGame.opponent_logo||'https://placehold.co/80x80/000/FFF?text=?'}" alt="Opponent Logo" class="h-20 w-20 mb-2"><span class="font-bold">${nextGame.opponent_name}</span></div></div><div id="countdown-timer"></div><p id="kickoff-time" class="text-center mt-4 font-semibold text-gray-600 dark:text-gray-400"></p><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-around text-center"><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Spread</p><p class="text-lg font-bold">${billsSpread?billsSpread.point:'N/A'}</p></div><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Total</p><p class="text-lg font-bold">${gameTotal?gameTotal.point:'N/A'}</p></div></div>`;document.getElementById("kickoff-time").textContent=new Date(nextGame.date).toLocaleString("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit"});startCountdown(nextGame.date)}
+    function renderInjuries(){const c=document.getElementById("injury-reports");let h='';const i=liveData.espn_data.injuries;if(!i||i.length===0){h='<p class="text-sm text-gray-500 dark:text-gray-400">No injuries reported.</p>'}else{i.forEach(p=>{const s=t=>{switch(t?.toLowerCase()){case"out":return"bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300";case"questionable":return"bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";default:return"bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200"}};if(p.player_name)h+=`<div class="flex items-center justify-between text-sm"><div><p class="font-semibold">${p.player_name} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">${p.position}</span></p><p class="text-xs text-gray-500 dark:text-gray-400">${p.detail||""}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${s(p.status)}">${p.status}</span></div>`})}c.innerHTML=h}
+    function renderSchedule(){const container=document.getElementById("schedule-list");if(!container||!liveData||!liveData.espn_data||!liveData.espn_data.schedule)return;container.innerHTML="";liveData.espn_data.schedule.forEach(game=>{const gameDiv=document.createElement("div");gameDiv.className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50";const isUpcoming=new Date(game.date)>new Date();let html=`<div><p class="font-semibold">Week ${game.week} vs ${game.opponent_name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${new Date(game.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</p></div>`;html+=isUpcoming?`<span class="text-xs font-medium text-gray-600 dark:text-gray-300">UPCOMING</span>`:`<span class="font-bold text-gray-500">PLAYED</span>`;gameDiv.innerHTML=html;container.appendChild(gameDiv)})}
+    
+    // --- INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', async () => {
-        // Theme Toggle Logic...
-        const themeToggleBtn=document.getElementById("theme-toggle"),themeToggleDarkIcon=document.getElementById("theme-toggle-dark-icon"),themeToggleLightIcon=document.getElementById("theme-toggle-light-icon");localStorage.getItem("color-theme")==="dark"||!("color-theme"in localStorage)&&window.matchMedia("(prefers-color-scheme: dark)").matches?(document.documentElement.classList.add("dark"),themeToggleLightIcon.classList.remove("hidden")):(document.documentElement.classList.remove("dark"),themeToggleDarkIcon.classList.remove("hidden")),themeToggleBtn.addEventListener("click",function(){themeToggleDarkIcon.classList.toggle("hidden"),themeToggleLightIcon.classList.toggle("hidden"),localStorage.getItem("color-theme")?localStorage.getItem("color-theme")==="light"?(document.documentElement.classList.add("dark"),localStorage.setItem("color-theme","dark")):(document.documentElement.classList.remove("dark"),localStorage.setItem("color-theme","light")):document.documentElement.classList.contains("dark")?(document.documentElement.classList.remove("dark"),localStorage.setItem("color-theme","light")):(document.documentElement.classList.add("dark"),localStorage.setItem("color-theme","dark"))});
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const darkIcon = document.getElementById('theme-toggle-dark-icon');
+        const lightIcon = document.getElementById('theme-toggle-light-icon');
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                lightIcon.classList.remove('hidden');
+                darkIcon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                darkIcon.classList.remove('hidden');
+                lightIcon.classList.add('hidden');
+            }
+        };
+        const savedTheme = localStorage.getItem('color-theme');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        applyTheme(savedTheme || systemTheme);
+        themeToggleBtn.addEventListener('click', () => {
+            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('color-theme', newTheme);
+            applyTheme(newTheme);
+        });
 
-        document.getElementById('generate-insights-btn').addEventListener('click', callGeminiAPI);
+        document.getElementById('generate-insights-btn').addEventListener('click', () => callGeminiAPI());
 
         try {
-            // Fetch the live data
-            const response = await fetch('dashboard_data.json');
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const response = await fetch('./dashboard_data.json');
+            if (!response.ok) throw new Error(`Could not load dashboard_data.json`);
             liveData = await response.json();
 
-            // Update UI with the live data
-            document.getElementById('data-status').textContent = `Live | Data from Season ${liveData.nfl_stats.data_season}`;
+            let statusText = "Error";
+            if (liveData.nfl_stats.current_season?.player_game_logs && Object.keys(liveData.nfl_stats.current_season.player_game_logs).length > 0) statusText = `Live | Data from Season ${liveData.nfl_stats.current_season.season}`;
+            else if (liveData.nfl_stats.previous_season) statusText = `Off-season | Data from ${liveData.nfl_stats.previous_season.season}`;
+            document.getElementById('data-status').textContent = statusText;
             document.getElementById('generate-insights-btn').disabled = false;
-            
-            const nextGame = findNextGame(liveData.espn_data.schedule);
-            if (nextGame) renderMatchup(nextGame);
-            
+
+            renderMatchupCard();
             renderSchedule();
             renderInjuries();
-            renderTrends();
+            renderPlayerExplorer();
 
         } catch (error) {
             console.error("Failed to load or process dashboard data:", error);
             document.getElementById('data-status').textContent = "Error loading data.";
-            document.getElementById('app').innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert"><p class="font-bold">Fatal Error</p><p>Could not load the <code>dashboard_data.json</code> file. Make sure you have run the Python pipeline script successfully.</p></div>`;
+            document.getElementById('app').innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert"><p class="font-bold">Fatal Error</p><p>${error.message}. Make sure you have run the Python pipeline script and are running a local server.</p></div>`;
         }
     });
 </script>
 </body>
 </html>
-
