@@ -84,7 +84,7 @@
 <body class="antialiased text-gray-800 dark:text-gray-200">
 
     <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <!-- Header -->
+        <!-- Header: Displays the dashboard title, logo, and data status. -->
         <header class="flex items-center justify-between mb-8">
             <div class="flex items-center space-x-4">
                 <img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="Buffalo Bills Logo" class="h-16 w-16">
@@ -93,22 +93,29 @@
                     <p id="data-status" class="text-gray-500 dark:text-gray-400">Loading live data...</p>
                 </div>
             </div>
+            <!-- Theme Toggle: Allows users to switch between light and dark mode. -->
             <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5">
                 <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
                 <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 5.05A1 1 0 016.465 3.636l.707.707a1 1 0 01-1.414 1.414l-.707-.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1zM13 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM4.93 14.95a1 1 0 011.414 0l.707-.707a1 1 0 01-1.414-1.414l-.707.707z"></path></svg>
             </button>
         </header>
 
+        <!-- Main Content Grid -->
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Contains dynamic matchup and player data. -->
             <div class="lg:col-span-2 space-y-8">
+                <!-- Matchup Card: Displays details about the next game. -->
                 <div id="matchup-card" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"></div>
+                <!-- Player Explorer: A collapsible list of players to view stats and odds. -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
                     <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">PLAYER STATS & ODDS EXPLORER</h2>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Click any player to see their historical performance. Live odds will populate when available.</p>
                     <div id="player-explorer-output" class="space-y-2"></div>
                 </div>
             </div>
+            <!-- Right Column: Contains AI analysis, injury reports, and schedule. -->
             <div class="lg:col-span-1 space-y-8">
+                <!-- Gemini AI Analysis Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
                     <div class="flex justify-between items-start mb-4">
                         <div>
@@ -123,10 +130,12 @@
                         Click 'Analyze' for an expert-level betting card.
                     </div>
                 </div>
+                <!-- Injury Report Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
                     <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">INJURY REPORT</h2>
                     <div id="injury-reports" class="space-y-4"></div>
                 </div>
+                <!-- Season Schedule Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
                     <h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">SEASON SCHEDULE</h2>
                     <div id="schedule-list" class="space-y-3"></div>
@@ -139,23 +148,49 @@
     </div>
 
 <script>
+    // Global variable to hold all the fetched data from `dashboard_data.json` for easy access across functions.
     let liveData = null;
 
-    // --- UTILITY FUNCTIONS ---
+    // --- DATA PROCESSING & UTILITY FUNCTIONS ---
+
+    /**
+     * Creates a standardized, lowercase, space-free player name for consistent object key lookups.
+     * Also handles common variations (e.g., 'J.Allen' -> 'joshallen').
+     * @param {string} name - The player's display name.
+     * @returns {string} - The normalized name.
+     */
     const normalizePlayerName = (name) => {
         const simpleNorm = name.replace(/\./g, "").replace(/\s/g, "").toLowerCase();
         const variants = { "jallen": "joshallen", "jaallen": "joshallen", "kcoleman": "keoncoleman", "jcook": "jamescook", "dkincaid": "daltonkincaid", "dknox": "dawsonknox", "kshakir": "khalilshakir", "rdavis": "raydavis", "jpalmer": "joshuapalmer" };
         return variants[simpleNorm] || simpleNorm;
     };
 
+    /**
+     * Maps betting market keys from the Odds API to the corresponding statistic keys
+     * used in our `nfl_stats` data object. This is crucial for connecting live odds to player stats.
+     * Note: TD markets are an array as they can be either rushing or receiving.
+     */
     const marketToStatKey = { 
         'player_pass_yds': 'passer_yards', 'player_pass_tds': 'passer_tds', 'player_pass_attempts': 'passer_attempts', 'player_pass_completions': 'passer_completions',
         'player_rush_yds': 'rusher_yards', 'player_rush_attempts': 'rusher_attempts',
         'player_reception_yds': 'receiver_yards', 'player_receptions': 'receiver_receptions', 
         'player_tds': ['rusher_anytime_td', 'receiver_anytime_td'], 'player_anytime_td': ['rusher_anytime_td', 'receiver_anytime_td'], 'player_1st_td': ['rusher_anytime_td', 'receiver_anytime_td']
     };
+    
+    /**
+     * Filters the schedule to find the first upcoming game.
+     * @param {Array} schedule - The array of game objects.
+     * @returns {Object|undefined} - The next game object, or undefined if none is found.
+     */
     const findNextGame = (schedule) => schedule.find(g => g.date && new Date(g.date) > new Date());
     
+    /**
+     * Analyzes an opponent's stats to identify their key offensive players (passer, rusher, receiver)
+     * based on their average performance in the current season.
+     * This data is used to provide context to the Gemini AI.
+     * @param {Object} opponentStats - The opponent's full stats object.
+     * @returns {Object} - An object containing formatted strings for the top players.
+     */
     function getOpponentKeyPlayers(opponentStats) {
         if (!opponentStats || !opponentStats.current_season || !opponentStats.current_season.player_game_logs) {
             return {};
@@ -194,13 +229,21 @@
         };
     }
 
+    // --- GEMINI AI ANALYSIS ---
+
+    /**
+     * Prepares and sends a detailed data packet to the backend server, which then securely
+     * calls the Gemini API to generate expert-level betting insights.
+     */
     async function callGeminiAPI() {
         const generateButton = document.getElementById('generate-insights-btn');
         const geminiOutput = document.getElementById('gemini-output');
 
+        // Disable button and show loading state to prevent multiple requests.
         generateButton.disabled = true;
         geminiOutput.innerHTML = `<div class="flex items-center justify-center h-full"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--bills-blue)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Consulting "Buffalo Sharp"...</span></div>`;
 
+        // Gather all necessary data points for the prompt.
         const nextGame = findNextGame(liveData.espn_data.schedule);
         const spreads = liveData.odds?.game_odds?.spreads || [];
         const billsSpread = spreads.find(o => o.name === 'Buffalo Bills');
@@ -211,7 +254,7 @@
         
         const opponentKeyPlayers = getOpponentKeyPlayers(liveData.opponent_nfl_stats);
         
-        // --- MODIFICATION: Add full injury reports for both teams ---
+        // Assemble the final data packet for the AI. This structured data is crucial for generating high-quality insights.
         const promptData = {
             gameLine: {
                 spread: `Buffalo Bills ${billsSpread ? billsSpread.point : 'N/A'}`,
@@ -222,7 +265,7 @@
                 current_season: liveData.nfl_stats?.current_season?.player_game_logs || {},
                 previous_season: liveData.nfl_stats?.previous_season?.player_game_logs || {}
             },
-            bills_injuries: liveData.espn_data.injuries || [], // Added Bills injuries
+            bills_injuries: liveData.espn_data.injuries || [], // Include full Bills injury report
             opponentProfile: {
                 name: nextGame.opponent_name,
                 rank_offense_yards: opponentPrevRankings.rank_offense_yards,
@@ -233,7 +276,7 @@
                 current_rank_defense_yards: opponentCurrentRankings.rank_defense_yards,
                 current_rank_pass_defense_yards: opponentCurrentRankings.rank_pass_defense_yards,
                 current_rank_rush_defense_yards: opponentCurrentRankings.rank_rush_defense_yards,
-                opponent_injuries: liveData.espn_data.opponent_injuries || [], // Added opponent injuries
+                opponent_injuries: liveData.espn_data.opponent_injuries || [], // Include full opponent injury report
                 key_players: opponentKeyPlayers
             },
             opponentPlayerStats: {
@@ -242,7 +285,8 @@
             }
         };
 
-        // --- MODIFICATION: Updated system prompt to guide the AI on using injury data ---
+        // This detailed system prompt instructs the AI on its persona, required analysis depth, and output format.
+        // It specifically commands the AI to analyze injury impacts and compare current vs. previous season rankings.
         const systemPrompt = `You are "Buffalo Sharp," a world-class sports betting analyst renowned for your deep, data-driven, and context-aware insights on the Buffalo Bills. You don't just read stats; you interpret them through the lens of matchups, game script, and critical context like injuries. Your tone is sharp, confident, and direct.
 
         **Core Philosophy:** Your analysis MUST go beyond simple hit rates. The key to winning is understanding *why* those stats exist and how the upcoming matchup and personnel changes will affect them. 
@@ -288,8 +332,8 @@
             * Use the specified div classes: \`analyst-preamble\`, \`bet-category\`, \`bet-card\`.
             * Use sub-headers like \`<h4>High Confidence Parlays</h4>\` inside Part 2.
             * **CRITICAL: Do NOT wrap your response in markdown \`\`\`html, \`\`\`, or any other markdown.**`;
-        // --- END MODIFICATION ---
                 
+        // The user query that gets sent along with the system prompt and data.
         const userQuery = `Please provide a full, expert-level betting card for the upcoming Buffalo Bills vs. ${nextGame.opponent_name} game. Analyze the provided JSON data to inform your picks.
         
         **Matchup Data Packet:**
@@ -303,6 +347,7 @@
         };
 
         try {
+            // Call the local Flask server endpoint, which will proxy the request to the Gemini API securely.
             const response = await fetch('/generate-insights', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
@@ -318,6 +363,7 @@
             const candidate = result.candidates?.[0];
 
             if (candidate?.content?.parts?.[0]?.text) {
+                // If successful, render the AI's HTML response directly into the output container.
                 geminiOutput.innerHTML = candidate.content.parts[0].text;
             } else { 
                 throw new Error("Invalid response structure from the Gemini API."); 
@@ -326,10 +372,18 @@
             console.error("Gemini API call failed:", error);
             geminiOutput.innerHTML = `<p class="text-red-500 text-center"><strong>Analysis Failed</strong><br>The AI is currently busy or unavailable. This can happen due to high demand. Please try again in a moment.</p>`;
         } finally {
+            // Re-enable the button regardless of success or failure.
             generateButton.disabled = false;
         }
     }
-
+    
+    /**
+     * Calculates a player's performance trend for a specific stat against a given betting line.
+     * @param {Array} gameLogs - An array of a player's game-by-game stats.
+     * @param {string|Array<string>} statKeys - The stat key(s) to check (e.g., 'passer_yards' or ['rusher_anytime_td']).
+     * @param {number} line - The betting line to compare against. A value of -1 is used for counting occurrences (e.g., TDs).
+     * @returns {Object} - An object containing hit rate, total hits, total games, and average stat value.
+     */
     function calculateTrend(gameLogs = [], statKeys, line) {
         let hits = 0, totalStat = 0;
         const total = gameLogs.length;
@@ -337,15 +391,16 @@
 
         gameLogs.forEach(game => {
             let gameStat = 0;
+            // Handle stats that could be one of multiple keys (e.g., a TD can be rushing or receiving).
             if (Array.isArray(statKeys)) {
                 gameStat = statKeys.some(key => game[key] >= 1) ? 1 : 0;
             } else {
                 gameStat = game[statKeys] || 0;
             }
-
+            // If line is > -1, we're checking if the stat went OVER the line.
             if (line > -1) { 
                 if (gameStat > line) hits++;
-            } else { 
+            } else { // Otherwise, we're just checking if the event happened (e.g., a TD was scored).
                 if(gameStat > 0) hits++;
             }
             totalStat += gameStat;
@@ -359,6 +414,12 @@
         };
     }
 
+    /**
+     * Iterates through all available player props from the odds data, calculates their historical
+     * performance trends using `calculateTrend`, and compiles the results into a structured object.
+     * This data is then passed to the Gemini AI for its analysis.
+     * @returns {Object} - An object of player trends, keyed by player display name.
+     */
     function analyzeAllPlayerTrends() {
         const trends = {};
         const playerProps = liveData.odds?.player_props || {};
@@ -392,7 +453,12 @@
         return trends;
     }
 
-    // --- RENDER FUNCTIONS ---
+    // --- UI RENDER FUNCTIONS ---
+
+    /**
+     * Populates the Player Stats & Odds Explorer section. It dynamically creates a collapsible
+     * row for each player. The detailed stats view for a player is lazily loaded on the first click.
+     */
     function renderPlayerExplorer() {
         const container = document.getElementById('player-explorer-output');
         container.innerHTML = '';
@@ -400,19 +466,24 @@
         const prevLogs = liveData.nfl_stats.previous_season?.player_game_logs || {};
         const playerProps = liveData.odds?.player_props || {};
         
+        // Get a unique, sorted list of all players who have stats in either season.
         const allPlayerDisplayNames = [...new Set(
             Object.values(currentLogs).concat(Object.values(prevLogs))
             .flatMap(playerLogsByName => Object.values(playerLogsByName).map(log => log.display_name))
         )].sort();
 
+        // Create a row for each player.
         allPlayerDisplayNames.forEach(displayName => {
             const playerRow = document.createElement('div');
             playerRow.className = 'player-row bg-gray-50 dark:bg-gray-900/50 rounded-lg';
             playerRow.innerHTML = `<div class="player-row-header flex items-center justify-between p-4 cursor-pointer"><span class="font-bold">${displayName}</span><svg class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></div><div class="player-row-detail border-t border-gray-200 dark:border-gray-700"></div>`;
             container.appendChild(playerRow);
 
+            // Add a click listener to toggle the detailed view.
             playerRow.querySelector('.player-row-header').addEventListener('click', () => {
                 const detailContainer = playerRow.querySelector('.player-row-detail');
+                
+                // Only build the detail HTML once, on the first time the row is opened.
                 if (detailContainer.innerHTML === '') {
                     let detailHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">';
                     const normName = normalizePlayerName(displayName);
@@ -420,6 +491,7 @@
                     const currentPlayerLogs = Object.values(currentLogs[normName] || {});
                     const prevPlayerLogs = Object.values(prevLogs[normName] || {});
 
+                    // Find all unique stats this player has recorded across both seasons.
                     const allPossibleStats = new Set();
                     [...currentPlayerLogs, ...prevPlayerLogs].forEach(log => {
                         Object.keys(log).forEach(key => {
@@ -429,6 +501,7 @@
                         });
                     });
 
+                    // Create a reverse map to easily find the market key from a stat key.
                     const statToMarketKey = {};
                     for(const market in marketToStatKey){
                         const stat = marketToStatKey[market];
@@ -441,6 +514,7 @@
 
                     if (allPossibleStats.size > 0) {
                         const sortedStats = Array.from(allPossibleStats).sort();
+                        // For each stat, find the odds, calculate trends, and build the display HTML.
                         sortedStats.forEach(statKey => {
                             const marketKey = statToMarketKey[statKey];
                             const marketData = oddsData?.markets?.[marketKey];
@@ -454,6 +528,7 @@
                             const propLabel = statKey.replace(/_/g, ' ').replace(/(^\w{1})|(\s+\w{1})/g, l => l.toUpperCase()).replace('Anytime Td', 'Anytime TD');
                             
                             let statDisplay;
+                            // If live odds are available, show the hit rate against the betting line.
                             if (overOutcome) {
                                 statDisplay = `<div class="flex justify-between items-center">
                                                     <span>This Season Hit Rate:</span>
@@ -463,7 +538,7 @@
                                                     <span>Last Season Hit Rate:</span>
                                                     <span class="font-mono">${prevTrend.hits}/${prevTrend.total} (${Math.round(prevTrend.hitRate)}%)</span>
                                                 </div>`;
-                            } else {
+                            } else { // If no odds, just show the player's average or total for that stat.
                                 const currentAvg = currentTrend.avg > 0 ? `${currentTrend.avg} avg` : `${currentTrend.hits} total`;
                                 const prevAvg = prevTrend.avg > 0 ? `${prevTrend.avg} avg` : `${prevTrend.hits} total`;
                                 statDisplay = `<div class="flex justify-between items-center">
@@ -493,22 +568,122 @@
                     detailHTML += '</div>';
                     detailContainer.innerHTML = detailHTML;
                 }
+                // Toggle the 'open' class to trigger CSS animations for expand/collapse.
                 playerRow.classList.toggle('open');
             });
         });
     }
 
-    let countdownInterval;function startCountdown(kickoff){if(countdownInterval)clearInterval(countdownInterval);const c=document.getElementById("countdown-timer"),t=new Date(kickoff).getTime();countdownInterval=setInterval(()=>{const e=(new Date).getTime(),o=t-e;if(o<0)return clearInterval(countdownInterval),void(c.innerHTML='<div class="text-xl font-bold text-[var(--bills-red)]">GAME IN PROGRESS</div>');const n=Math.floor(o/864e5),l=Math.floor(o%864e5/36e5),r=Math.floor(o%36e5/6e4),i=Math.floor(o%6e4/1e3);c.innerHTML=`<div class="flex justify-center space-x-2 sm:space-x-4"><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${n}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Days</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${l}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Hours</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${r}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Mins</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${i}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Secs</span></div></div>`},1e3)}
-    function renderMatchupCard(){const container=document.getElementById('matchup-card');const nextGame=findNextGame(liveData.espn_data.schedule);if(!nextGame){container.innerHTML=`<h2 class="text-xl font-bold text-center">Off-season</h2><p class="text-center text-gray-500">No upcoming games found.</p>`;return}
-    const spreads=liveData.odds?.game_odds?.spreads||[];const totals=liveData.odds?.game_odds?.totals||[];const billsSpread=spreads.find(o=>o.name==='Buffalo Bills');const gameTotal=totals[0];container.innerHTML=`<h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">UPCOMING MATCHUP</h2><div class="flex items-center justify-around mb-6 text-center"><div class="flex flex-col items-center"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="Bills Logo" class="h-20 w-20 mb-2"><span class="font-bold">Buffalo Bills</span></div><span class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</span><div class="flex flex-col items-center"><img src="${nextGame.opponent_logo||'https://placehold.co/80x80/000/FFF?text=?'}" alt="Opponent Logo" class="h-20 w-20 mb-2"><span class="font-bold">${nextGame.opponent_name}</span></div></div><div id="countdown-timer"></div><p id="kickoff-time" class="text-center mt-4 font-semibold text-gray-600 dark:text-gray-400"></p><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-around text-center"><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Spread</p><p class="text-lg font-bold">${billsSpread?billsSpread.point:'N/A'}</p></div><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Total</p><p class="text-lg font-bold">${gameTotal?gameTotal.point:'N/A'}</p></div></div>`;document.getElementById("kickoff-time").textContent=new Date(nextGame.date).toLocaleString("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit"});startCountdown(nextGame.date)}
-    function renderInjuries(){const c=document.getElementById("injury-reports");let h='';const i=liveData.espn_data.injuries;if(!i||i.length===0){h='<p class="text-sm text-gray-500 dark:text-gray-400">No injuries reported.</p>'}else{i.forEach(p=>{const s=t=>{switch(t?.toLowerCase()){case"out":return"bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300";case"questionable":return"bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";default:return"bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200"}};if(p.player_name)h+=`<div class="flex items-center justify-between text-sm"><div><p class="font-semibold">${p.player_name} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">${p.position}</span></p><p class="text-xs text-gray-500 dark:text-gray-400">${p.detail||""}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${s(p.status)}">${p.status}</span></div>`})}c.innerHTML=h}
-    function renderSchedule(){const container=document.getElementById("schedule-list");if(!container||!liveData||!liveData.espn_data||!liveData.espn_data.schedule)return;container.innerHTML="";liveData.espn_data.schedule.forEach(game=>{const gameDiv=document.createElement("div");gameDiv.className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50";const isUpcoming=new Date(game.date)>new Date();let html=`<div><p class="font-semibold">Week ${game.week} vs ${game.opponent_name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${new Date(game.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</p></div>`;html+=isUpcoming?`<span class="text-xs font-medium text-gray-600 dark:text-gray-300">UPCOMING</span>`:`<span class="font-bold text-gray-500">PLAYED</span>`;gameDiv.innerHTML=html;container.appendChild(gameDiv)})}
+    // A global variable to hold the countdown timer interval, allowing it to be cleared if the component is re-rendered.
+    let countdownInterval;
+    /**
+     * Starts a live countdown timer to the provided kickoff time and updates the DOM every second.
+     * @param {string} kickoff - The ISO 8601 string of the game's kickoff time.
+     */
+    function startCountdown(kickoff) {
+        if (countdownInterval) clearInterval(countdownInterval);
+        const countdownElement = document.getElementById("countdown-timer");
+        const kickoffTime = new Date(kickoff).getTime();
+
+        countdownInterval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = kickoffTime - now;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                countdownElement.innerHTML = `<div class="text-xl font-bold text-[var(--bills-red)]">GAME IN PROGRESS</div>`;
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            countdownElement.innerHTML = `<div class="flex justify-center space-x-2 sm:space-x-4"><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${days}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Days</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${hours}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Hours</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${minutes}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Mins</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${seconds}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Secs</span></div></div>`;
+        }, 1000);
+    }
     
-    // --- INITIALIZATION ---
+    /**
+     * Renders the main matchup card, displaying team logos, opponent name, countdown timer, and key betting lines.
+     */
+    function renderMatchupCard() {
+        const container = document.getElementById('matchup-card');
+        const nextGame = findNextGame(liveData.espn_data.schedule);
+
+        if (!nextGame) {
+            container.innerHTML = `<h2 class="text-xl font-bold text-center">Off-season</h2><p class="text-center text-gray-500">No upcoming games found.</p>`;
+            return;
+        }
+
+        const spreads = liveData.odds?.game_odds?.spreads || [];
+        const totals = liveData.odds?.game_odds?.totals || [];
+        const billsSpread = spreads.find(o => o.name === 'Buffalo Bills');
+        const gameTotal = totals[0];
+
+        container.innerHTML = `<h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">UPCOMING MATCHUP</h2><div class="flex items-center justify-around mb-6 text-center"><div class="flex flex-col items-center"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="Bills Logo" class="h-20 w-20 mb-2"><span class="font-bold">Buffalo Bills</span></div><span class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</span><div class="flex flex-col items-center"><img src="${nextGame.opponent_logo || 'https://placehold.co/80x80/000/FFF?text=?'}" alt="Opponent Logo" class="h-20 w-20 mb-2"><span class="font-bold">${nextGame.opponent_name}</span></div></div><div id="countdown-timer"></div><p id="kickoff-time" class="text-center mt-4 font-semibold text-gray-600 dark:text-gray-400"></p><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-around text-center"><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Spread</p><p class="text-lg font-bold">${billsSpread ? billsSpread.point : 'N/A'}</p></div><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Total</p><p class="text-lg font-bold">${gameTotal ? gameTotal.point : 'N/A'}</p></div></div>`;
+        
+        document.getElementById("kickoff-time").textContent = new Date(nextGame.date).toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+        startCountdown(nextGame.date);
+    }
+
+    /**
+     * Renders the injury report list, color-coding each player's status for quick visual assessment.
+     */
+    function renderInjuries() {
+        const container = document.getElementById("injury-reports");
+        let html = '';
+        const injuries = liveData.espn_data.injuries;
+
+        if (!injuries || injuries.length === 0) {
+            html = '<p class="text-sm text-gray-500 dark:text-gray-400">No injuries reported.</p>';
+        } else {
+            injuries.forEach(player => {
+                const getStatusClass = status => {
+                    switch(status?.toLowerCase()) {
+                        case "out": return "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300";
+                        case "questionable": return "bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+                        default: return "bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200";
+                    }
+                };
+                if(player.player_name) {
+                     html += `<div class="flex items-center justify-between text-sm"><div><p class="font-semibold">${p.player_name} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">${p.position}</span></p><p class="text-xs text-gray-500 dark:text-gray-400">${p.detail||""}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${getStatusClass(p.status)}">${p.status}</span></div>`
+                }
+            });
+        }
+        container.innerHTML = html;
+    }
+
+    /**
+     * Renders the list of all games for the season, indicating their status (upcoming or played).
+     */
+    function renderSchedule() {
+        const container = document.getElementById("schedule-list");
+        if (!container || !liveData || !liveData.espn_data || !liveData.espn_data.schedule) return;
+        container.innerHTML = "";
+        liveData.espn_data.schedule.forEach(game => {
+            const gameDiv = document.createElement("div");
+            gameDiv.className = "flex items-center justify-between text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50";
+            const isUpcoming = new Date(game.date) > new Date();
+            let html = `<div><p class="font-semibold">Week ${game.week} vs ${game.opponent_name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${new Date(game.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p></div>`;
+            html += isUpcoming ? `<span class="text-xs font-medium text-gray-600 dark:text-gray-300">UPCOMING</span>` : `<span class="font-bold text-gray-500">PLAYED</span>`;
+            gameDiv.innerHTML = html;
+            container.appendChild(gameDiv);
+        });
+    }
+    
+    // --- PAGE INITIALIZATION ---
+    /**
+     * Main entry point when the DOM is fully loaded. It handles theme setup, fetches the main data file,
+     * and calls all the render functions to build the page.
+     */
     document.addEventListener('DOMContentLoaded', async () => {
+        // --- Theme Toggle Setup ---
         const themeToggleBtn = document.getElementById('theme-toggle');
         const darkIcon = document.getElementById('theme-toggle-dark-icon');
         const lightIcon = document.getElementById('theme-toggle-light-icon');
+        
+        // Function to apply the selected theme class to the document.
         const applyTheme = (theme) => {
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark');
@@ -520,34 +695,45 @@
                 lightIcon.classList.add('hidden');
             }
         };
+
+        // Check for a saved theme in localStorage or use the system preference.
         const savedTheme = localStorage.getItem('color-theme');
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         applyTheme(savedTheme || systemTheme);
+        
+        // Add click listener to the toggle button to switch themes and save the preference.
         themeToggleBtn.addEventListener('click', () => {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
             localStorage.setItem('color-theme', newTheme);
             applyTheme(newTheme);
         });
 
+        // Attach the main AI analysis function to its button.
         document.getElementById('generate-insights-btn').addEventListener('click', () => callGeminiAPI());
 
+        // --- Data Fetching and Page Rendering ---
         try {
             const response = await fetch('./dashboard_data.json');
             if (!response.ok) throw new Error(`Could not load dashboard_data.json`);
             liveData = await response.json();
 
+            // Determine and display the current data status (e.g., Live or Off-season).
             let statusText = "Error";
             if (liveData.nfl_stats.current_season?.player_game_logs && Object.keys(liveData.nfl_stats.current_season.player_game_logs).length > 0) statusText = `Live | Data from Season ${liveData.nfl_stats.current_season.season}`;
             else if (liveData.nfl_stats.previous_season) statusText = `Off-season | Data from ${liveData.nfl_stats.previous_season.season}`;
             document.getElementById('data-status').textContent = statusText;
+            
+            // Enable the analysis button now that data is loaded.
             document.getElementById('generate-insights-btn').disabled = false;
 
+            // Call all render functions to populate the UI with the fetched data.
             renderMatchupCard();
             renderSchedule();
             renderInjuries();
             renderPlayerExplorer();
 
         } catch (error) {
+            // If fetching or processing fails, display a clear error message to the user.
             console.error("Failed to load or process dashboard data:", error);
             document.getElementById('data-status').textContent = "Error loading data.";
             document.getElementById('app').innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert"><p class="font-bold">Fatal Error</p><p>${error.message}. Make sure you have run the Python pipeline script and are running a local server.</p></div>`;
