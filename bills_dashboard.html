@@ -574,103 +574,11 @@
         });
     }
 
-    // A global variable to hold the countdown timer interval, allowing it to be cleared if the component is re-rendered.
-    let countdownInterval;
-    /**
-     * Starts a live countdown timer to the provided kickoff time and updates the DOM every second.
-     * @param {string} kickoff - The ISO 8601 string of the game's kickoff time.
-     */
-    function startCountdown(kickoff) {
-        if (countdownInterval) clearInterval(countdownInterval);
-        const countdownElement = document.getElementById("countdown-timer");
-        const kickoffTime = new Date(kickoff).getTime();
-
-        countdownInterval = setInterval(() => {
-            const now = new Date().getTime();
-            const distance = kickoffTime - now;
-
-            if (distance < 0) {
-                clearInterval(countdownInterval);
-                countdownElement.innerHTML = `<div class="text-xl font-bold text-[var(--bills-red)]">GAME IN PROGRESS</div>`;
-                return;
-            }
-
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            countdownElement.innerHTML = `<div class="flex justify-center space-x-2 sm:space-x-4"><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${days}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Days</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${hours}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Hours</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${minutes}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Mins</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${seconds}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Secs</span></div></div>`;
-        }, 1000);
-    }
-    
-    /**
-     * Renders the main matchup card, displaying team logos, opponent name, countdown timer, and key betting lines.
-     */
-    function renderMatchupCard() {
-        const container = document.getElementById('matchup-card');
-        const nextGame = findNextGame(liveData.espn_data.schedule);
-
-        if (!nextGame) {
-            container.innerHTML = `<h2 class="text-xl font-bold text-center">Off-season</h2><p class="text-center text-gray-500">No upcoming games found.</p>`;
-            return;
-        }
-
-        const spreads = liveData.odds?.game_odds?.spreads || [];
-        const totals = liveData.odds?.game_odds?.totals || [];
-        const billsSpread = spreads.find(o => o.name === 'Buffalo Bills');
-        const gameTotal = totals[0];
-
-        container.innerHTML = `<h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">UPCOMING MATCHUP</h2><div class="flex items-center justify-around mb-6 text-center"><div class="flex flex-col items-center"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="Bills Logo" class="h-20 w-20 mb-2"><span class="font-bold">Buffalo Bills</span></div><span class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</span><div class="flex flex-col items-center"><img src="${nextGame.opponent_logo || 'https://placehold.co/80x80/000/FFF?text=?'}" alt="Opponent Logo" class="h-20 w-20 mb-2"><span class="font-bold">${nextGame.opponent_name}</span></div></div><div id="countdown-timer"></div><p id="kickoff-time" class="text-center mt-4 font-semibold text-gray-600 dark:text-gray-400"></p><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-around text-center"><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Spread</p><p class="text-lg font-bold">${billsSpread ? billsSpread.point : 'N/A'}</p></div><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Total</p><p class="text-lg font-bold">${gameTotal ? gameTotal.point : 'N/A'}</p></div></div>`;
-        
-        document.getElementById("kickoff-time").textContent = new Date(nextGame.date).toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
-        startCountdown(nextGame.date);
-    }
-
-    /**
-     * Renders the injury report list, color-coding each player's status for quick visual assessment.
-     */
-    function renderInjuries() {
-        const container = document.getElementById("injury-reports");
-        let html = '';
-        const injuries = liveData.espn_data.injuries;
-
-        if (!injuries || injuries.length === 0) {
-            html = '<p class="text-sm text-gray-500 dark:text-gray-400">No injuries reported.</p>';
-        } else {
-            injuries.forEach(player => {
-                const getStatusClass = status => {
-                    switch(status?.toLowerCase()) {
-                        case "out": return "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300";
-                        case "questionable": return "bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-                        default: return "bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200";
-                    }
-                };
-                if(player.player_name) {
-                     html += `<div class="flex items-center justify-between text-sm"><div><p class="font-semibold">${p.player_name} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">${p.position}</span></p><p class="text-xs text-gray-500 dark:text-gray-400">${p.detail||""}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${getStatusClass(p.status)}">${p.status}</span></div>`
-                }
-            });
-        }
-        container.innerHTML = html;
-    }
-
-    /**
-     * Renders the list of all games for the season, indicating their status (upcoming or played).
-     */
-    function renderSchedule() {
-        const container = document.getElementById("schedule-list");
-        if (!container || !liveData || !liveData.espn_data || !liveData.espn_data.schedule) return;
-        container.innerHTML = "";
-        liveData.espn_data.schedule.forEach(game => {
-            const gameDiv = document.createElement("div");
-            gameDiv.className = "flex items-center justify-between text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50";
-            const isUpcoming = new Date(game.date) > new Date();
-            let html = `<div><p class="font-semibold">Week ${game.week} vs ${game.opponent_name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${new Date(game.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p></div>`;
-            html += isUpcoming ? `<span class="text-xs font-medium text-gray-600 dark:text-gray-300">UPCOMING</span>` : `<span class="font-bold text-gray-500">PLAYED</span>`;
-            gameDiv.innerHTML = html;
-            container.appendChild(gameDiv);
-        });
-    }
+    let countdownInterval;function startCountdown(kickoff){if(countdownInterval)clearInterval(countdownInterval);const c=document.getElementById("countdown-timer"),t=new Date(kickoff).getTime();countdownInterval=setInterval(()=>{const e=(new Date).getTime(),o=t-e;if(o<0)return clearInterval(countdownInterval),void(c.innerHTML='<div class="text-xl font-bold text-[var(--bills-red)]">GAME IN PROGRESS</div>');const n=Math.floor(o/864e5),l=Math.floor(o%864e5/36e5),r=Math.floor(o%36e5/6e4),i=Math.floor(o%6e4/1e3);c.innerHTML=`<div class="flex justify-center space-x-2 sm:space-x-4"><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${n}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Days</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${l}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Hours</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${r}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Mins</span></div><div class="flex flex-col items-center justify-center p-1 min-w-[70px]"><span class="font-bold text-3xl text-[var(--bills-blue)] dark:text-blue-400">${i}</span><span class="text-xs uppercase text-gray-500 dark:text-gray-400">Secs</span></div></div>`},1e3)}
+    function renderMatchupCard(){const container=document.getElementById('matchup-card');const nextGame=findNextGame(liveData.espn_data.schedule);if(!nextGame){container.innerHTML=`<h2 class="text-xl font-bold text-center">Off-season</h2><p class="text-center text-gray-500">No upcoming games found.</p>`;return}
+    const spreads=liveData.odds?.game_odds?.spreads||[];const totals=liveData.odds?.game_odds?.totals||[];const billsSpread=spreads.find(o=>o.name==='Buffalo Bills');const gameTotal=totals[0];container.innerHTML=`<h2 class="text-xl font-bold text-[var(--bills-blue)] dark:text-blue-400 mb-4">UPCOMING MATCHUP</h2><div class="flex items-center justify-around mb-6 text-center"><div class="flex flex-col items-center"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="Bills Logo" class="h-20 w-20 mb-2"><span class="font-bold">Buffalo Bills</span></div><span class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</span><div class="flex flex-col items-center"><img src="${nextGame.opponent_logo||'https://placehold.co/80x80/000/FFF?text=?'}" alt="Opponent Logo" class="h-20 w-20 mb-2"><span class="font-bold">${nextGame.opponent_name}</span></div></div><div id="countdown-timer"></div><p id="kickoff-time" class="text-center mt-4 font-semibold text-gray-600 dark:text-gray-400"></p><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-around text-center"><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Spread</p><p class="text-lg font-bold">${billsSpread?billsSpread.point:'N/A'}</p></div><div><p class="text-xs uppercase text-gray-500 dark:text-gray-400">Total</p><p class="text-lg font-bold">${gameTotal?gameTotal.point:'N/A'}</p></div></div>`;document.getElementById("kickoff-time").textContent=new Date(nextGame.date).toLocaleString("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit"});startCountdown(nextGame.date)}
+    function renderInjuries(){const c=document.getElementById("injury-reports");let h='';const i=liveData.espn_data.injuries;if(!i||i.length===0){h='<p class="text-sm text-gray-500 dark:text-gray-400">No injuries reported.</p>'}else{i.forEach(p=>{const s=t=>{switch(t?.toLowerCase()){case"out":return"bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300";case"questionable":return"bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";default:return"bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200"}};if(p.player_name)h+=`<div class="flex items-center justify-between text-sm"><div><p class="font-semibold">${p.player_name} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">${p.position}</span></p><p class="text-xs text-gray-500 dark:text-gray-400">${p.detail||""}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${s(p.status)}">${p.status}</span></div>`})}c.innerHTML=h}
+    function renderSchedule(){const container=document.getElementById("schedule-list");if(!container||!liveData||!liveData.espn_data||!liveData.espn_data.schedule)return;container.innerHTML="";liveData.espn_data.schedule.forEach(game=>{const gameDiv=document.createElement("div");gameDiv.className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50";const isUpcoming=new Date(game.date)>new Date();let html=`<div><p class="font-semibold">Week ${game.week} vs ${game.opponent_name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${new Date(game.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</p></div>`;html+=isUpcoming?`<span class="text-xs font-medium text-gray-600 dark:text-gray-300">UPCOMING</span>`:`<span class="font-bold text-gray-500">PLAYED</span>`;gameDiv.innerHTML=html;container.appendChild(gameDiv)})}
     
     // --- PAGE INITIALIZATION ---
     /**
